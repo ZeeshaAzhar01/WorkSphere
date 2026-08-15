@@ -1,0 +1,28 @@
+# ===========================================
+# WorkSphere — Docker Compose (Development)
+# ===========================================
+# This provides PostgreSQL for local development.
+# Run: docker-compose up -d
+# ===========================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: worksphere-db
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: worksphere
+      POSTGRES_PASSWORD: worksphere_pass
+      POSTGRES_DB: worksphere
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U worksphere']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
