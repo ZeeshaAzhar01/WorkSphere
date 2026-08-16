@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const errorHandler = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
+const authRoutes = require('./routes/auth.routes');
+const organizationRoutes = require('./routes/organization.routes');
 
 const app = express();
 
@@ -33,14 +35,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes will be registered here in later phases
-// app.use('/api/v1/auth', authRoutes);
-// app.use('/api/v1/organizations', organizationRoutes);
-// ...
+// API routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/organizations', organizationRoutes);
 
 // --------------- 404 Handler ---------------
 // Catches any request that doesn't match a defined route
-app.all('*', (req, res, next) => {
+app.use((req, res, next) => {
   next(new AppError(`Cannot find ${req.method} ${req.originalUrl}`, 404));
 });
 
