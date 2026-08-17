@@ -6,6 +6,8 @@ const errorHandler = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
 const authRoutes = require('./routes/auth.routes');
 const organizationRoutes = require('./routes/organization.routes');
+const projectRoutes = require('./routes/project.routes');
+const taskRoutes = require('./routes/task.routes');
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/organizations', organizationRoutes);
+app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 // --------------- 404 Handler ---------------
 // Catches any request that doesn't match a defined route
