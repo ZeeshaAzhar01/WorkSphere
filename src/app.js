@@ -8,6 +8,8 @@ const authRoutes = require('./routes/auth.routes');
 const organizationRoutes = require('./routes/organization.routes');
 const projectRoutes = require('./routes/project.routes');
 const taskRoutes = require('./routes/task.routes');
+const invitationRoutes = require('./routes/invitation.routes');
+const membershipRoutes = require('./routes/membership.routes');
 
 const app = express();
 
@@ -42,6 +44,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/organizations', organizationRoutes);
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/invitations', invitationRoutes);
+app.use('/api/v1/memberships', membershipRoutes);
 
 // --------------- 404 Handler ---------------
 // Catches any request that doesn't match a defined route
