@@ -10,6 +10,8 @@ const projectRoutes = require('./routes/project.routes');
 const taskRoutes = require('./routes/task.routes');
 const invitationRoutes = require('./routes/invitation.routes');
 const membershipRoutes = require('./routes/membership.routes');
+const billingRoutes = require('./routes/billing.routes');
+const billingController = require('./controllers/billing.controller');
 
 const app = express();
 
@@ -24,8 +26,10 @@ app.use(cors());
 // Request logging
 app.use(morgan('dev'));
 
-// Body parsing — JSON for all routes
-// Note: Stripe webhooks need raw body; we'll handle that in Phase 5
+// Stripe webhook MUST use raw body and be mounted before express.json()
+app.post('/api/v1/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
+
+// Body parsing — JSON for all other routes
 app.use(express.json());
 
 // --------------- Routes ---------------
@@ -46,6 +50,7 @@ app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/memberships', membershipRoutes);
+app.use('/api/v1/billing', billingRoutes);
 
 // --------------- 404 Handler ---------------
 // Catches any request that doesn't match a defined route
