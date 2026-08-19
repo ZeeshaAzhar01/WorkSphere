@@ -35,6 +35,23 @@ const createOrganization = async (userId, data) => {
       }
     });
 
+    // 3. Attach FREE subscription
+    const freePlan = await tx.plan.findUnique({
+      where: { name: 'FREE' }
+    });
+
+    if (!freePlan) {
+      throw new AppError('Default plan not configured in system.', 500);
+    }
+
+    await tx.subscription.create({
+      data: {
+        organizationId: organization.id,
+        planId: freePlan.id,
+        status: 'ACTIVE' // Free plans are immediately active
+      }
+    });
+
     return organization;
   });
 };
