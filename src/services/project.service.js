@@ -2,12 +2,39 @@ const prisma = require('../config/database');
 const AppError = require('../utils/AppError');
 
 const createProject = async (organizationId, userId, data) => {
-  return prisma.project.create({
-    data: {
-      ...data,
-      organizationId,
-      createdById: userId,
-    },
+  // Use a transaction to ensure accurate counting and creation
+  return prisma.$transaction(async (tx) => {
+    // 1. Get the organization's subscription and plan limits
+    const subscription = await tx.subscription.findUnique({
+      where: { organizationId },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      throw new AppError('No active subscription found for this organization.', 400);
+    }
+
+    // 2. Count current projects
+    const currentProjectCount = await tx.project.count({
+      where: { organizationId },
+    });
+
+    // 3. Check against the plan limit
+    if (currentProjectCount >= subscription.plan.maxProjects) {
+      throw new AppError(
+        `Upgrade required. Your ${subscription.plan.name} plan only allows up to ${subscription.plan.maxProjects} projects.`,
+        403 
+      );
+    }
+
+    // 4. Create the project if limits are not reached
+    return tx.project.create({
+      data: {
+        ...data,
+        organizationId,
+        createdBy: userId,
+      },
+    });
   });
 };
 
@@ -23,7 +50,7 @@ const getProjects = async (organizationId, query) => {
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        createdBy: {
+        creator: {
           select: { id: true, name: true, email: true }
         }
       }
@@ -41,7 +68,7 @@ const getProjectById = async (organizationId, projectId) => {
       organizationId,
     },
     include: {
-      createdBy: {
+      creator: {
         select: { id: true, name: true, email: true }
       }
     }

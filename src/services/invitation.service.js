@@ -40,21 +40,47 @@ const createInvitation = async (organizationId, inviterId, data) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // Expires in 7 days
 
-  // 4. Create invitation
-  const invitation = await prisma.invitation.create({
-    data: {
-      organizationId,
-      invitedBy: inviterId,
-      email,
-      role,
-      token,
-      expiresAt,
+  // 4. Check limits and create invitation
+  return prisma.$transaction(async (tx) => {
+    const subscription = await tx.subscription.findUnique({
+      where: { organizationId },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      throw new AppError('No active subscription found for this organization.', 400);
     }
+
+    const currentMembersCount = await tx.membership.count({
+      where: { organizationId },
+    });
+    
+    const pendingInvitesCount = await tx.invitation.count({
+      where: { organizationId, status: 'PENDING' },
+    });
+
+    if (currentMembersCount + pendingInvitesCount >= subscription.plan.maxMembers) {
+      throw new AppError(
+        `Upgrade required. Your ${subscription.plan.name} plan only allows up to ${subscription.plan.maxMembers} members (including pending invitations).`,
+        403 
+      );
+    }
+
+    const invitation = await tx.invitation.create({
+      data: {
+        organizationId,
+        invitedBy: inviterId,
+        email,
+        role,
+        token,
+        expiresAt,
+      }
+    });
+
+    // TODO: Send email with token link here
+
+    return invitation;
   });
-
-  // TODO: Send email with token link here
-
-  return invitation;
 };
 
 const getPendingInvitations = async (organizationId) => {

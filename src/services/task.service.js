@@ -27,12 +27,35 @@ const createTask = async (organizationId, userId, data) => {
     }
   }
 
-  return prisma.task.create({
-    data: {
-      ...data,
-      organizationId,
-      createdById: userId,
-    },
+  // Transaction for limit check
+  return prisma.$transaction(async (tx) => {
+    const subscription = await tx.subscription.findUnique({
+      where: { organizationId },
+      include: { plan: true },
+    });
+
+    if (!subscription) {
+      throw new AppError('No active subscription found for this organization.', 400);
+    }
+
+    const currentTaskCount = await tx.task.count({
+      where: { organizationId },
+    });
+
+    if (currentTaskCount >= subscription.plan.maxTasks) {
+      throw new AppError(
+        `Upgrade required. Your ${subscription.plan.name} plan only allows up to ${subscription.plan.maxTasks} tasks.`,
+        403 
+      );
+    }
+
+    return tx.task.create({
+      data: {
+        ...data,
+        organizationId,
+        createdBy: userId,
+      },
+    });
   });
 };
 
@@ -55,7 +78,7 @@ const getTasks = async (organizationId, query) => {
       orderBy: { createdAt: 'desc' },
       include: {
         assignee: { select: { id: true, name: true, email: true } },
-        createdBy: { select: { id: true, name: true, email: true } }
+        creator: { select: { id: true, name: true, email: true } }
       }
     }),
     prisma.task.count({ where })
@@ -72,7 +95,7 @@ const getTaskById = async (organizationId, taskId) => {
     },
     include: {
       assignee: { select: { id: true, name: true, email: true } },
-      createdBy: { select: { id: true, name: true, email: true } },
+      creator: { select: { id: true, name: true, email: true } },
       project: { select: { id: true, name: true } }
     }
   });
