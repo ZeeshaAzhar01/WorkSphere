@@ -1,6 +1,7 @@
 const app = require('./app');
 const env = require('./config/env');
 const prisma = require('./config/database');
+const { scheduleJobs } = require('./jobs/cron');
 
 const startServer = async () => {
   try {
@@ -14,6 +15,9 @@ const startServer = async () => {
       console.log(`Environment: ${env.nodeEnv}`);
       console.log(`Health check: http://localhost:${env.port}/health\n`);
     });
+
+    // Start scheduled jobs
+    scheduleJobs();
 
     // Graceful shutdown
     const shutdown = async (signal) => {
