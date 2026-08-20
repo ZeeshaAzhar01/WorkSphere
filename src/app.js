@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const errorHandler = require('./middleware/errorHandler');
 const AppError = require('./utils/AppError');
 const authRoutes = require('./routes/auth.routes');
@@ -25,6 +26,17 @@ app.use(cors());
 
 // Request logging
 app.use(morgan('dev'));
+
+// Rate limiting (max 100 requests per 15 minutes per IP)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
+  message: {
+    status: 'fail',
+    message: 'Too many requests from this IP, please try again in 15 minutes!'
+  }
+});
+app.use('/api', limiter);
 
 // Stripe webhook MUST use raw body and be mounted before express.json()
 app.post('/api/v1/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
